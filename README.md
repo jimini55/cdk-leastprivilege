@@ -132,7 +132,7 @@ This script is intended as a starting point for generating IAM policies. It's im
 
 ### Will cdklp address all IAM security concerns for developers?
 
-While cdklp significantly aids in deploying CDK with the least privilege, it's important to understand the role of permission boundaries. [Setting a permission boundary for the CDK exec role is a best practice,](https://aws.amazon.com/blogs/devops/secure-cdk-deployments-with-iam-permission-boundaries/) however, cdklp is invaluable in identifying the exact permissions required for developers, which is crucial for navigating internal security approval processes, especially in environments with strict IAM policies.
+While cdklp aids in deploying CDK with the least privilege, [setting a permission boundary is recommended,](https://aws.amazon.com/blogs/devops/secure-cdk-deployments-with-iam-permission-boundaries/) however, cdklp is invaluable in identifying the exact permissions required for developers, which is crucial for navigating internal security approval processes, especially in environments with strict IAM policies.
 
 ### How does cdklp differ from the original open-source project?
 
