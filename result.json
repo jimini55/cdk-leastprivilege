@@ -1,0 +1,138 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "sqs:CreateQueue",
+                "sqs:DeleteQueue",
+                "sqs:GetQueueAttributes"
+            ],
+            "Resource": "arn:aws:sqs:us-west-1:012345689910:sfcc-destination-destination-queue-dlq"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "sqs:CreateQueue",
+                "sqs:DeleteQueue",
+                "sqs:GetQueueAttributes"
+            ],
+            "Resource": "arn:aws:sqs:us-west-1:012345689910:sfcc-destination-destination-event-queue"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "events:DeleteRule",
+                "events:DescribeRule",
+                "events:ListTargetsByRule",
+                "events:PutRule",
+                "events:PutTargets",
+                "events:RemoveTargets",
+                "iam:DeleteGroupPolicy",
+                "iam:DeleteRolePolicy",
+                "iam:DeleteUserPolicy",
+                "iam:GetGroupPolicy",
+                "iam:GetRolePolicy",
+                "iam:GetUserPolicy",
+                "iam:PassRole",
+                "iam:PutGroupPolicy",
+                "iam:PutRolePolicy",
+                "iam:PutUserPolicy",
+                "lambda:CreateEventSourceMapping",
+                "lambda:DeleteEventSourceMapping",
+                "lambda:GetEventSourceMapping",
+                "s3:DeleteBucketPolicy",
+                "s3:GetBucketPolicy",
+                "s3:PutBucketPolicy",
+                "sqs:SetQueueAttributes"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:AttachRolePolicy",
+                "iam:CreateRole",
+                "iam:DeleteRole",
+                "iam:DetachRolePolicy"
+            ],
+            "Resource": "arn:aws:iam::012345689910:role/*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "lambda:CreateFunction",
+                "lambda:DeleteFunction",
+                "lambda:GetFunction"
+            ],
+            "Resource": "arn:aws:lambda:us-west-1:012345689910:function:*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "iam:PassRole",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "iam:PassedToService": "lambda.amazonaws.com"
+                },
+                "StringLike": {
+                    "iam:AssociatedResourceArn": "arn:aws:lambda:us-west-1:012345689910:function:*"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::cdk-hnb659fds-assets-012345689910-us-west-1/71ee895f172fa11350039b8ad091bb02ae03e17009dde01edad669d9d9aab482.zip"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:CreateBucket",
+                "s3:DeleteBucket"
+            ],
+            "Resource": "arn:aws:s3:::012345689910-prod-order-event-consumer-bucket-access-logs"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:CreateBucket",
+                "s3:DeleteBucket",
+                "s3:PutBucketLogging",
+                "s3:PutEncryptionConfiguration"
+            ],
+            "Resource": "arn:aws:s3:::012345689910-prod-order-event-consumer-bucket"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "sqs:CreateQueue",
+                "sqs:DeleteQueue",
+                "sqs:GetQueueAttributes"
+            ],
+            "Resource": "arn:aws:sqs:us-west-1:012345689910:s3-destination-destination-queue-dlq"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "sqs:CreateQueue",
+                "sqs:DeleteQueue",
+                "sqs:GetQueueAttributes"
+            ],
+            "Resource": "arn:aws:sqs:us-west-1:012345689910:s3-destination-destination-event-queue"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::cdk-hnb659fds-assets-012345689910-us-west-1/ba7e90d04e05ca7874cc823fd48e37b7a1b60c277b9c4b09fced03c5fa72b632.zip"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:GetRole",
+                "ssm:GetParameters"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

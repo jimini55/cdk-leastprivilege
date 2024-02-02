@@ -1,0 +1,453 @@
+Resources:
+  SFCCDestinationDestinationInfrasfccdestinationdestinationqueuedlq753A1352:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      QueueName: sfcc-destination-destination-queue-dlq
+      VisibilityTimeout: 40
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/SFCCDestination/DestinationInfra/sfcc-destination-destination-queue-dlq/Resource
+  SFCCDestinationDestinationInfrasfccdestinationdestinationeventqueueBD1A1BA4:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      QueueName: sfcc-destination-destination-event-queue
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - SFCCDestinationDestinationInfrasfccdestinationdestinationqueuedlq753A1352
+            - Arn
+        maxReceiveCount: 5
+      VisibilityTimeout: 40
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/SFCCDestination/DestinationInfra/sfcc-destination-destination-event-queue/Resource
+  SFCCDestinationDestinationInfrasfccdestinationdestinationeventqueuePolicyD59D1E1B:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - sqs:GetQueueAttributes
+              - sqs:GetQueueUrl
+              - sqs:SendMessage
+            Condition:
+              ArnEquals:
+                aws:SourceArn:
+                  Fn::GetAtt:
+                    - SFCCDestinationDestinationInfraEventBusToSqsConnectionbwpeventbusruleECE9E034
+                    - Arn
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Resource:
+              Fn::GetAtt:
+                - SFCCDestinationDestinationInfrasfccdestinationdestinationeventqueueBD1A1BA4
+                - Arn
+        Version: "2012-10-17"
+      Queues:
+        - Ref: SFCCDestinationDestinationInfrasfccdestinationdestinationeventqueueBD1A1BA4
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/SFCCDestination/DestinationInfra/sfcc-destination-destination-event-queue/Policy/Resource
+  SFCCDestinationDestinationInfraEventBusToSqsConnectionbwpeventbusruleECE9E034:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: event-bus
+      EventPattern:
+        source:
+          - aws.partner/buywithprime/bwp-events
+        detail-type:
+          - BUYABILITY_CHANGED
+          - INVENTORY_CHANGED
+      State: ENABLED
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - SFCCDestinationDestinationInfrasfccdestinationdestinationeventqueueBD1A1BA4
+              - Arn
+          Id: Target0
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/SFCCDestination/DestinationInfra/EventBusToSqsConnection/bwp-event-bus-rule/Resource
+  SFCCDestinationDestinationInfraMyLambdaFunctionServiceRole6C23D08B:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/SFCCDestination/DestinationInfra/MyLambdaFunction/ServiceRole/Resource
+  SFCCDestinationDestinationInfraMyLambdaFunctionServiceRoleDefaultPolicy3042B1EB:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - sqs:ChangeMessageVisibility
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              - sqs:GetQueueUrl
+              - sqs:ReceiveMessage
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - SFCCDestinationDestinationInfrasfccdestinationdestinationeventqueueBD1A1BA4
+                - Arn
+          - Action:
+              - secretsmanager:GetSecretValue
+              - secretsmanager:PutSecretValue
+              - secretsmanager:UpdateSecret
+            Effect: Allow
+            Resource:
+              - arn:aws:secretsmanager:us-west-1:012345689910:secret:bwp-oauth-credential
+              - arn:aws:secretsmanager:us-west-1:012345689910:secret:bwp-saas-oauth-client-secret
+        Version: "2012-10-17"
+      PolicyName: SFCCDestinationDestinationInfraMyLambdaFunctionServiceRoleDefaultPolicy3042B1EB
+      Roles:
+        - Ref: SFCCDestinationDestinationInfraMyLambdaFunctionServiceRole6C23D08B
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/SFCCDestination/DestinationInfra/MyLambdaFunction/ServiceRole/DefaultPolicy/Resource
+  SFCCDestinationDestinationInfraMyLambdaFunctionD6453004:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: cdk-hnb659fds-assets-012345689910-us-west-1
+        S3Key: 71ee895f172fa11350039b8ad091bb02ae03e17009dde01edad669d9d9aab482.zip
+      Environment:
+        Variables:
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
+      Handler: index.SFCCLambdaHandler
+      Role:
+        Fn::GetAtt:
+          - SFCCDestinationDestinationInfraMyLambdaFunctionServiceRole6C23D08B
+          - Arn
+      Runtime: nodejs18.x
+      Timeout: 40
+    DependsOn:
+      - SFCCDestinationDestinationInfraMyLambdaFunctionServiceRoleDefaultPolicy3042B1EB
+      - SFCCDestinationDestinationInfraMyLambdaFunctionServiceRole6C23D08B
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/SFCCDestination/DestinationInfra/MyLambdaFunction/Resource
+      aws:asset:path: asset.71ee895f172fa11350039b8ad091bb02ae03e17009dde01edad669d9d9aab482
+      aws:asset:is-bundled: true
+      aws:asset:property: Code
+  SFCCDestinationDestinationInfraMyLambdaFunctionSqsEventSourceBwpEventConsumerSdkStackSFCCDestinationDestinationInfrasfccdestinationdestinationeventqueueD42866F5697C64F2:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 1
+      EventSourceArn:
+        Fn::GetAtt:
+          - SFCCDestinationDestinationInfrasfccdestinationdestinationeventqueueBD1A1BA4
+          - Arn
+      FunctionName:
+        Ref: SFCCDestinationDestinationInfraMyLambdaFunctionD6453004
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/SFCCDestination/DestinationInfra/MyLambdaFunction/SqsEventSource:BwpEventConsumerSdkStackSFCCDestinationDestinationInfrasfccdestinationdestinationeventqueueD42866F5/Resource
+  S3DestinationS3DestinationAccessLogBucket1FB64CD9:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: 012345689910-prod-order-event-consumer-bucket-access-logs
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/S3Destination/S3DestinationAccessLogBucket/Resource
+  S3DestinationS3DestinationAccessLogBucketPolicy9934D0F0:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: S3DestinationS3DestinationAccessLogBucket1FB64CD9
+      PolicyDocument:
+        Statement:
+          - Action: s3:*
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+            Effect: Deny
+            Principal:
+              AWS: "*"
+            Resource:
+              - Fn::GetAtt:
+                  - S3DestinationS3DestinationAccessLogBucket1FB64CD9
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - S3DestinationS3DestinationAccessLogBucket1FB64CD9
+                        - Arn
+                    - /*
+          - Action: s3:PutObject
+            Condition:
+              ArnLike:
+                aws:SourceArn:
+                  Fn::GetAtt:
+                    - S3DestinationBucketC6ECB1C6
+                    - Arn
+              StringEquals:
+                aws:SourceAccount: "012345689910"
+            Effect: Allow
+            Principal:
+              Service: logging.s3.amazonaws.com
+            Resource:
+              Fn::Join:
+                - ""
+                - - Fn::GetAtt:
+                      - S3DestinationS3DestinationAccessLogBucket1FB64CD9
+                      - Arn
+                  - /accessLog-*
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/S3Destination/S3DestinationAccessLogBucket/Policy/Resource
+  S3DestinationBucketC6ECB1C6:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+      BucketName: 012345689910-prod-order-event-consumer-bucket
+      LoggingConfiguration:
+        DestinationBucketName:
+          Ref: S3DestinationS3DestinationAccessLogBucket1FB64CD9
+        LogFilePrefix: accessLog-
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/S3Destination/Bucket/Resource
+  S3DestinationBucketPolicyB7F048CB:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: S3DestinationBucketC6ECB1C6
+      PolicyDocument:
+        Statement:
+          - Action: s3:*
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+            Effect: Deny
+            Principal:
+              AWS: "*"
+            Resource:
+              - Fn::GetAtt:
+                  - S3DestinationBucketC6ECB1C6
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - S3DestinationBucketC6ECB1C6
+                        - Arn
+                    - /*
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/S3Destination/Bucket/Policy/Resource
+  S3DestinationDestinationInfras3destinationdestinationqueuedlq6AAFE02D:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      QueueName: s3-destination-destination-queue-dlq
+      VisibilityTimeout: 40
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/S3Destination/DestinationInfra/s3-destination-destination-queue-dlq/Resource
+  S3DestinationDestinationInfras3destinationdestinationeventqueue69F3070D:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      QueueName: s3-destination-destination-event-queue
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - S3DestinationDestinationInfras3destinationdestinationqueuedlq6AAFE02D
+            - Arn
+        maxReceiveCount: 5
+      VisibilityTimeout: 40
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/S3Destination/DestinationInfra/s3-destination-destination-event-queue/Resource
+  S3DestinationDestinationInfras3destinationdestinationeventqueuePolicy9AA3649F:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - sqs:GetQueueAttributes
+              - sqs:GetQueueUrl
+              - sqs:SendMessage
+            Condition:
+              ArnEquals:
+                aws:SourceArn:
+                  Fn::GetAtt:
+                    - S3DestinationDestinationInfraEventBusToSqsConnectionbwpeventbusrule80901FC8
+                    - Arn
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Resource:
+              Fn::GetAtt:
+                - S3DestinationDestinationInfras3destinationdestinationeventqueue69F3070D
+                - Arn
+        Version: "2012-10-17"
+      Queues:
+        - Ref: S3DestinationDestinationInfras3destinationdestinationeventqueue69F3070D
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/S3Destination/DestinationInfra/s3-destination-destination-event-queue/Policy/Resource
+  S3DestinationDestinationInfraEventBusToSqsConnectionbwpeventbusrule80901FC8:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: event-bus
+      EventPattern:
+        source:
+          - aws.partner/buywithprime/bwp-events
+        detail-type:
+          - RETURN_STARTED
+          - REFUND_REQUESTED
+          - RETURN_COMPLETED
+          - ITEM_DELIVERED
+          - ITEM_CANCELLED
+          - ITEM_IN_TRANSIT
+          - ORDER_PLACED
+      State: ENABLED
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - S3DestinationDestinationInfras3destinationdestinationeventqueue69F3070D
+              - Arn
+          Id: Target0
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/S3Destination/DestinationInfra/EventBusToSqsConnection/bwp-event-bus-rule/Resource
+  S3DestinationDestinationInfraMyLambdaFunctionServiceRole31310739:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/S3Destination/DestinationInfra/MyLambdaFunction/ServiceRole/Resource
+  S3DestinationDestinationInfraMyLambdaFunctionServiceRoleDefaultPolicy4A6D9546:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - sqs:ChangeMessageVisibility
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              - sqs:GetQueueUrl
+              - sqs:ReceiveMessage
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - S3DestinationDestinationInfras3destinationdestinationeventqueue69F3070D
+                - Arn
+          - Action:
+              - secretsmanager:GetSecretValue
+              - secretsmanager:PutSecretValue
+              - secretsmanager:UpdateSecret
+            Effect: Allow
+            Resource: arn:aws:secretsmanager:us-west-1:012345689910:secret:bwp-saas-oauth-client-secret
+          - Action: s3:PutObject
+            Effect: Allow
+            Resource:
+              - Fn::GetAtt:
+                  - S3DestinationBucketC6ECB1C6
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - S3DestinationBucketC6ECB1C6
+                        - Arn
+                    - /*
+        Version: "2012-10-17"
+      PolicyName: S3DestinationDestinationInfraMyLambdaFunctionServiceRoleDefaultPolicy4A6D9546
+      Roles:
+        - Ref: S3DestinationDestinationInfraMyLambdaFunctionServiceRole31310739
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/S3Destination/DestinationInfra/MyLambdaFunction/ServiceRole/DefaultPolicy/Resource
+  S3DestinationDestinationInfraMyLambdaFunction949408C2:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: cdk-hnb659fds-assets-012345689910-us-west-1
+        S3Key: ba7e90d04e05ca7874cc823fd48e37b7a1b60c277b9c4b09fced03c5fa72b632.zip
+      Environment:
+        Variables:
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
+          S3_BUCKET_NAME:
+            Ref: S3DestinationBucketC6ECB1C6
+          OBJECT_NAME_PREFIX: bwpOrder-
+      Handler: index.S3LambdaHandler
+      Role:
+        Fn::GetAtt:
+          - S3DestinationDestinationInfraMyLambdaFunctionServiceRole31310739
+          - Arn
+      Runtime: nodejs18.x
+      Timeout: 40
+    DependsOn:
+      - S3DestinationDestinationInfraMyLambdaFunctionServiceRoleDefaultPolicy4A6D9546
+      - S3DestinationDestinationInfraMyLambdaFunctionServiceRole31310739
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/S3Destination/DestinationInfra/MyLambdaFunction/Resource
+      aws:asset:path: asset.ba7e90d04e05ca7874cc823fd48e37b7a1b60c277b9c4b09fced03c5fa72b632
+      aws:asset:is-bundled: true
+      aws:asset:property: Code
+  S3DestinationDestinationInfraMyLambdaFunctionSqsEventSourceBwpEventConsumerSdkStackS3DestinationDestinationInfras3destinationdestinationeventqueueA96F07ADE1F08EFB:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 1
+      EventSourceArn:
+        Fn::GetAtt:
+          - S3DestinationDestinationInfras3destinationdestinationeventqueue69F3070D
+          - Arn
+      FunctionName:
+        Ref: S3DestinationDestinationInfraMyLambdaFunction949408C2
+    Metadata:
+      aws:cdk:path: BwpEventConsumerSdkStack/S3Destination/DestinationInfra/MyLambdaFunction/SqsEventSource:BwpEventConsumerSdkStackS3DestinationDestinationInfras3destinationdestinationeventqueueA96F07AD/Resource
+  # CDKMetadata:
+  #   Type: AWS::CDK::Metadata
+  #   Properties:
+  #     Analytics: v2:deflate64:H4sIAAAAAAAA/2VQy24CMQz8Fu5Zl1Cp4lqq9lZElw9YhayLso8EcEKFovx789iFSr1k7LFnNM4KOF8CX4gfqmTbV4M6gN9bIXsWqcbTmcB/OXTI3r51KfK7M4OStztZ2sDwitpGSe2GrEgY2CDGQysabVrsCLYZPpyWVhnNlBjjvpn2Ez68Z1t6bgQRRufXBLEHv3GyR7sRhKyUSTBVBR4+f/s5Dvg4uKd4T8H3xl0kforTSelj0v1nQ2A1UmZYzhI/6zhtz4PA0qXQ0dOVr4G/wHLRkVLVxWmrRoS64C8EVlAQfAEAAA==
+  #   Metadata:
+  #     aws:cdk:path: BwpEventConsumerSdkStack/CDKMetadata/Default
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+Rules:
+  CheckBootstrapVersion:
+    Assertions:
+      - Assert:
+          Fn::Not:
+            - Fn::Contains:
+                - - "1"
+                  - "2"
+                  - "3"
+                  - "4"
+                  - "5"
+                - Ref: BootstrapVersion
+        AssertDescription: CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.
+

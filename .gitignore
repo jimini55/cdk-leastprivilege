@@ -1,3 +1,7 @@
+# CDK LP ignore
+test.py
+policy.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

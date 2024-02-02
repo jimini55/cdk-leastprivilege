@@ -57,11 +57,22 @@ class PermissionsManager:
             self.tracked_permissions.append(tracked_permission)
 
     def generate(self, consolidate_permissions):
-        output_permissions = self.tracked_permissions 
+        output_permissions = self.tracked_permissions
 
         if consolidate_permissions:
             output_permissions = self.consolidate_permissions(self.tracked_permissions)
 
+        # Add IAM GetRole and SSM GetParameters by default for CDK
+        default_policies = [
+            {
+                'Effect': 'Allow',
+                'Action': ['iam:GetRole', 'ssm:GetParameters'],
+                'Resource': '*'
+            }
+        ]
+
+        output_permissions.extend(default_policies)
+        
         for i, permission in enumerate(output_permissions):
             if len(permission['Action']) == 1:
                 output_permissions[i]['Action'] = permission['Action'][0]
@@ -69,12 +80,9 @@ class PermissionsManager:
                 output_permissions[i]['Resource'] = permission['Resource'][0]
 
         return {
-            "PolicyName": "root",
-            "PolicyDocument": {
-                "Version": "2012-10-17",
-                "Statement": output_permissions
-            }
-        }
+            "Version": "2012-10-17",
+            "Statement": output_permissions
+        } # Remove "PolicyName" and "PolicyDocument" label
 
     def consolidate_permissions(self, permissions):
         # TODO: Consolidate for same action, different resource and for combining wildcard w/ specific
@@ -116,7 +124,8 @@ class RoleGen:
         self.region = args.region or boto3.session.Session().region_name or 'us-east-1'
         self.template = None
         self.permissions = PermissionsManager(self.include_update_actions)
-        self.skipped_types = []
+        self.skipped_types = ["AWS::CDK::Metadata"]
+        
 
         session = boto3.session.Session(
             profile_name=self.profile,
@@ -130,9 +139,22 @@ class RoleGen:
         if self.input_file:
             try:
                 with open(self.input_file, "r", encoding="utf-8") as f:
-                    self.template = json.loads(to_json(f.read()))
-            except:
-                raise InvalidTemplate("Invalid template (could not parse)")
+                    file_content = f.read()
+                try:
+                    self.template = json.loads(to_json(file_content))
+                except json.JSONDecodeError as e:
+                    raise InvalidTemplate(f"JSON parsing error: {e}")
+                except Exception as e:
+                    raise InvalidTemplate(f"Error converting to JSON: {e}")
+
+                # Exception for CDK metadata
+                if "CDKMetadata" in self.template["Resources"]:
+                    self.template["Resources"].pop("CDKMetadata")
+
+            except FileNotFoundError as e:
+                raise InvalidTemplate(f"File not found: {e}")
+            except Exception as e:
+                raise InvalidTemplate(f"File reading error: {e}")
         elif self.stack_name:
             try:
                 template_body = self.cfnclient.get_template(
@@ -140,6 +162,10 @@ class RoleGen:
                     TemplateStage='Processed'
                 )['TemplateBody']
                 self.template = json.loads(to_json(template_body))
+                
+                # Exception for CDK metadata
+                if "CDKMetadata" in self.template["Resources"]:
+                    self.template["Resources"].pop("CDKMetadata")
             except:
                 raise InvalidTemplate("Could not retrieve remote stack")
         else:
@@ -154,7 +180,7 @@ class RoleGen:
         policy = self.permissions.generate(self.consolidate_policy)
 
         if len(self.skipped_types) > 0:
-            sys.stderr.write("WARNING: Skipped the following types: {}\n".format(
+            sys.stderr.write("Skipped the following types: {}\n".format(
                 ", ".join(sorted(set(self.skipped_types)))))
 
         if len(json.dumps(policy, separators=(',', ': '))) > 10240:
@@ -239,24 +265,33 @@ class RoleGen:
         return True
 
     def get_permissions(self, resname, res):
+        # print(f"Processing resource type: {res['Type']}")
         if res["Type"] in self.skipped_types:
+            # print(f"Skipping resource type: {res['Type']}")
             return
-        
+
         mapped_classname = "{}Permissions".format(
             str(res["Type"]).replace("::", ""))
+        
         if mapped_classname in globals():
             globals()[mapped_classname].get_permissions(self, resname, res)
         elif not res["Type"].startswith("Custom::"):
             self.get_remote_permissions_for_type(resname, res["Type"])
+            
 
-    def get_remote_permissions_for_type(self, resname, restype):
+    def get_remote_permissions_for_type(self, resname, restype):           
+        if restype in self.skipped_types:
+            print(f"Skipping type: {restype} as it's in skipped_types")
+            return
+        
         try:
             remote_type_def = self.cfnclient.describe_type(
                 Type='RESOURCE',
                 TypeName=restype
             )
-        except:
+        except self.cfnclient.exceptions.TypeNotFoundException:
             return
+        
 
         if remote_type_def['DeprecatedStatus'] != "LIVE":
             self.skipped_types.append(restype)

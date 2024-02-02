@@ -27,6 +27,6 @@ setup(name='cfnlp',
           'cfn-flip>=1.3.0'
       ],
       entry_points={'console_scripts': [
-          'cfnlp = cfnlp.main:main'
+          'cdklp = cfnlp.main:main'
       ]}
 )
